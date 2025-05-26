@@ -69,8 +69,9 @@ model:
   token_dir: ${data.data_dir}
   model_kwargs:
     # ---
-    return_embeddings: true  # meaning that the new head structure is used instead of the old one
+    return_embeddings: true
     backbone_weights_path: null
+    token_weights_path: null # Can add a path here for token weights, may help with token imbalances 
     # ---
     embedding_dim: 256
     attention_dropout: 0.1
