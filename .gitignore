@@ -19,10 +19,6 @@ job_scripts/*tmp*
 # C extensions
 *.so
 
-# Datasets
-datasets/jetclass
-datasets/jetclass_tokenised
-
 # Distribution / packaging
 .Python
 build/
@@ -136,6 +132,10 @@ celerybeat.pid
 # SageMath parsed files
 *.sage.py
 
+# Datasets
+datasets/jetclass
+datasets/jetclass_tokenised
+
 # Environments
 .env
 .venv
@@ -144,6 +144,9 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+
+# Logs
+logs/
 
 # Spyder project settings
 .spyderproject
