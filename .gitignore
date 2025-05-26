@@ -19,6 +19,10 @@ job_scripts/*tmp*
 # C extensions
 *.so
 
+# Datasets
+datasets/jetclass
+datasets/jetclass_tokenised
+
 # Distribution / packaging
 .Python
 build/
