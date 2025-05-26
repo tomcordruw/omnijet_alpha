@@ -161,6 +161,9 @@ logs/
 # Rope project settings
 .ropeproject
 
+# vqtorch
+vqtorch
+
 # mkdocs documentation
 /site
 
