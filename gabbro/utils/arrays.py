@@ -217,6 +217,24 @@ def ak_select_and_preprocess(ak_array: ak.Array, pp_dict=None, inverse=False):
     )
 
 
+# Return a boolean mask with only the cuts (without transforming features)
+def ak_select(ak_array, pp_dict):
+    # define initial mask as all True
+    first_feat = list(pp_dict.keys())[0]
+    selection_mask = ak.ones_like(ak_array[first_feat], dtype=bool)
+
+    for name, params in pp_dict.items():
+        if "larger_than" in params:
+            if params["larger_than"] == None:
+                continue
+            selection_mask = selection_mask & (ak_array[name] > params["larger_than"])
+        if "smaller_than" in params:
+            if params["smaller_than"] == None:
+                continue
+            selection_mask = selection_mask & (ak_array[name] < params["smaller_than"])
+    return selection_mask
+
+
 # define a function to sort ak.Array by pt
 def sort_by_pt(constituents: ak.Array, ascending: bool = False):
     """Sort ak.Array of jet constituents by the pt
