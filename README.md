@@ -28,6 +28,7 @@ Joschka Birk, Anna Hallin, Gregor Kasieczka
 
 Changes were made to the data preprocessing, tokenisation and generative model.
 Please refer to the respective sections to find out more.
+Some of the files for tested configurations are included in `test_configs`.
 
 ### Dataset
 
