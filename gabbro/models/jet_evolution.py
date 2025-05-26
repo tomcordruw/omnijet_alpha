@@ -271,9 +271,14 @@ class BackboneTokenPairPredictionLightning(L.LightningModule):
             probs = F.softmax(logits[:, -1, :], dim=-1)
             # Exclude start token from predicted classes
             token = torch.multinomial(probs[:, 1:], num_samples=1) + 1
-            # Get the top-k tokens (was used for testing)
+            # Get the top-k tokens (e.g. for testing)
             topk = torch.topk(probs[:, 1:], 5)
             print(f"\n{head} head prediction: {token.item()}", end="")
+            #if true_token is not None:
+            #    print(f" (ground truth: {true_token})")
+            #else:
+            #    print()
+            #print(f"\n{head} head top-5 tokens and probabilities:\n{topk.indices}\n{topk.values}")
             return token.item()
 
         # Predict the last two tokens of a sequence based on the parent
