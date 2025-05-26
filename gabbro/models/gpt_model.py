@@ -154,6 +154,7 @@ class BackboneModel(nn.Module):
         self.max_sequence_len = max_sequence_len
         self.verbose = verbosity
         self.embedding_table = nn.Embedding(vocab_size, embedding_dim)
+        self.pos_embedding = nn.Embedding(max_sequence_len, embedding_dim)
         self.return_embeddings = return_embeddings
 
         GPT_block_stack = []
@@ -171,7 +172,16 @@ class BackboneModel(nn.Module):
         self.GPT_blocks = nn.Sequential(*GPT_block_stack)
 
     def forward(self, x, padding_mask=None):
+        # Get the shape to for the positional embeddings
+        B, T = x.shape
         x = self.embedding_table(x)
+
+        # Create position indices
+        positions = torch.arange(0, T, device=x.device).unsqueeze(0)
+        positional_embeddings = self.pos_embedding(positions)   
+
+        # Sum the token embeddings and positional embeddings
+        x = x + positional_embeddings
 
         for block in self.GPT_blocks:
             x = block(x, padding_mask=padding_mask)
