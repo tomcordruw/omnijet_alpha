@@ -168,6 +168,11 @@ def reconstruct_jetclass_file(
     if end_token_included:
         logger.info("Removing end token")
         tokens = tokens[:, :-1]
+        # Masking tokens of leaf nodes in the jet evolution, which in this case are stop tokens
+        codebook_size = np.float32(model.model.vqlayer.num_codes)
+        logger.info("Masking out remaining leaf nodes")
+        mask = tokens != codebook_size + 1
+        tokens = tokens[mask]
     if start_token_included:
         logger.info("Removing start token and shifting tokens by -1")
         tokens = tokens[:, 1:]
