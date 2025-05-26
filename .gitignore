@@ -132,6 +132,12 @@ celerybeat.pid
 # SageMath parsed files
 *.sage.py
 
+# Checkpoints
+checkpoints/*
+!checkpoints/configs/*
+!checkpoints/download_checkpoints.sh
+!checkpoints/README.md
+
 # Datasets
 datasets/jetclass
 datasets/jetclass_tokenised
