@@ -1,0 +1,165 @@
+task_name: tokenization
+tags:
+- vqvae_tokenization
+train: true
+test: true
+ckpt_path: null
+seed: 1603
+data:
+  dataset_kwargs_train:
+    logger_name: IterDataset-Train
+    shuffle_files: true
+    shuffle_data: true
+    seed: 42
+    max_n_files_per_type: 100
+    files_dict:
+      Tbqq:
+      - ${data.data_dir}/train_100M/TTBar_*
+  dataset_kwargs_val:
+    logger_name: IterDataset-Validation
+    shuffle_files: false
+    shuffle_data: true
+    seed_shuffle_data: 42
+    max_n_files_per_type: 5
+    files_dict:
+      Tbqq:
+      - ${data.data_dir}/val_5M/TTBar_*
+  dataset_kwargs_test:
+    logger_name: IterDataset-Test
+    shuffle_files: false
+    shuffle_data: true
+    seed_shuffle_data: 42
+    max_n_files_per_type: 20
+    files_dict:
+      Tbqq:
+      - ${data.data_dir}/test_20M/TTBar_*
+  batch_size: 512
+  data_dir: datasets/jetclass
+  _target_: gabbro.data.iterable_dataset_jetclass_recluster.IterableDatamodule
+  dataset_kwargs_common:
+    pad_length: 256
+    n_files_at_once: 100
+    labels_to_load:
+    - label_Tbqq
+    n_jets_per_file: 40000
+    load_only_once: true
+    feature_dict:
+      part_pt:
+        multiply_by: 1
+        subtract_by: 1.8
+        func: np.log
+        inv_func: np.exp
+      part_etarel:
+        multiply_by: 3
+        larger_than: -0.8
+        smaller_than: 0.8
+      part_phirel:
+        multiply_by: 3
+        larger_than: -0.8
+        smaller_than: 0.8
+model:
+  _target_: gabbro.models.vqvae.VQVAELightning
+  model_type: VQVAENormFormer
+  model_kwargs:
+    input_dim: 3
+    hidden_dim: 256
+    latent_dim: 4
+    num_blocks: 4
+    num_heads: 8
+    alpha: 10
+    vq_kwargs:
+      num_codes: 12288
+      beta: 0.9
+      kmeans_init: true
+      norm: null
+      cb_norm: null
+      affine_lr: 2
+      sync_nu: 1
+      replace_freq: 10
+      dim: -1
+  optimizer:
+    _target_: torch.optim.AdamW
+    _partial_: true
+    lr: 0.001
+    weight_decay: 0.01
+  scheduler:
+    _target_: gabbro.schedulers.lr_scheduler.OneCycleCooldown
+    _partial_: true
+    warmup: 4
+    cooldown: 20
+    cooldown_final: 50
+    max_lr: 0.001
+    initial_lr: 0.0005
+    final_lr: 0.0003
+  model_kwargs_loaded: null
+callbacks:
+  model_checkpoint_best:
+    _target_: gabbro.callbacks.checkpoint_callback.CustomModelCheckpoint
+    state_key: Best-checkpoint-callback
+    dirpath: ${paths.output_dir}/checkpoints
+    filename: epoch_{epoch:03d}_abserr_pt_{val_abserr_pt:.5f}
+    monitor: val_abserr_pt
+    verbose: true
+    save_last: true
+    save_top_k: 5
+    mode: min
+    auto_insert_metric_name: false
+    save_weights_only: false
+    every_n_train_steps: null
+    train_time_interval: null
+    every_n_epochs: 1
+    save_on_train_epoch_end: true
+  model_summary:
+    _target_: lightning.pytorch.callbacks.RichModelSummary
+    max_depth: -1
+  lr_monitor:
+    _target_: lightning.pytorch.callbacks.LearningRateMonitor
+    logging_interval: epoch
+    log_momentum: false
+  tokenization_callback:
+    _target_: gabbro.callbacks.tokenization_callback.TokenizationEvalCallback
+logger:
+  comet:
+    _target_: lightning.pytorch.loggers.comet.CometLogger
+    api_key: ${oc.env:COMET_API_TOKEN}
+    save_dir: ${paths.output_dir}
+    project_name: ${project_name}
+    rest_api_key: null
+    experiment_key: null
+    offline: false
+    prefix: ''
+    experiment_name: DecayedDinoceras
+  csv:
+    _target_: lightning.pytorch.loggers.csv_logs.CSVLogger
+    save_dir: ${paths.output_dir}
+    name: csv/
+    prefix: ''
+  wandb:
+    project: ${project_name}
+    tags: ${tags}
+    name: DecayedDinoceras
+trainer:
+  _target_: lightning.Trainer
+  default_root_dir: ${paths.output_dir}
+  min_epochs: 1
+  accelerator: gpu
+  devices: 1
+  enable_progress_bar: false
+  check_val_every_n_epoch: 1
+  deterministic: false
+  max_epochs: 100
+  gradient_clip_val: 5
+  log_every_n_steps: 10
+  limit_train_batches: 1900
+  limit_val_batches: 100
+paths:
+  log_dir: ${oc.env:LOG_DIR}
+  output_dir: ${hydra:run.dir}
+  work_dir: ${hydra:runtime.cwd}
+extras:
+  ignore_warnings: false
+  enforce_tags: true
+  print_config: true
+project_name: tokenization
+run_note: ''
+load_weights_from: false

@@ -1,0 +1,181 @@
+task_name: omnijet_backbone
+tags:
+- generative
+train: true
+test: true
+ckpt_path: null
+seed: 1603
+data:
+  dataset_kwargs_train:
+    logger_name: IterDataset-Train
+    shuffle_files: true
+    shuffle_data: true
+    seed: 42
+    max_n_files_per_type: 100
+    files_dict:
+      Tbqq:
+      - ${data.data_dir}/train_100M/TTBar_*
+  dataset_kwargs_val:
+    logger_name: IterDataset-Validation
+    shuffle_files: false
+    shuffle_data: true
+    seed_shuffle_data: 42
+    max_n_files_per_type: 5
+    files_dict:
+      Tbqq:
+      - ${data.data_dir}/val_5M/TTBar_*
+    shuffle_only_once: false
+  dataset_kwargs_test:
+    logger_name: IterDataset-Test
+    shuffle_files: false
+    shuffle_data: true
+    seed_shuffle_data: 42
+    max_n_files_per_type: 20
+    files_dict:
+      Tbqq:
+      - ${data.data_dir}/test_20M/TTBar_*
+  batch_size: 256
+  data_dir: ./datasets/jetclass_tokenised
+  _target_: gabbro.data.iterable_dataset_jetclass.IterableDatamodule
+  dataset_kwargs_common:
+    pad_length: 512
+    n_files_at_once: 100
+    labels_to_load:
+    - label_Tbqq
+    load_only_once: true
+    n_jets_per_file: 30000
+    feature_dict:
+      part_token_id_without_last: {}
+      part_token_id_without_first: {}
+    token_id_cfg:
+      remove_start_token: false
+      remove_end_token: false
+      shift_tokens_minus_one: false
+model:
+  _target_: gabbro.models.jet_evolution.BackboneTokenPairPredictionLightning
+  model_kwargs:
+    embedding_dim: 512
+    attention_dropout: 0.0
+    vocab_size: 12290
+    max_sequence_len: 512
+    n_GPT_blocks: 3
+    n_heads: 8
+    verbosity: false
+    return_embeddings: true
+    backbone_weights_path: null
+    token_weights_path: ./datasets/jetclass_tokenised/token_weights.pt
+  optimizer:
+    _target_: torch.optim.AdamW
+    _partial_: true
+    lr: 0.001
+    weight_decay: 0.01
+  scheduler:
+    _target_: torch.optim.lr_scheduler.ConstantLR
+    _partial_: true
+    total_iters: 1
+  model_kwargs_loaded: null
+  token_dir: ${data.data_dir}
+callbacks:
+  model_checkpoint:
+    _target_: gabbro.callbacks.checkpoint_callback.CustomModelCheckpoint
+    state_key: General-checkpoint-callback
+    dirpath: ${paths.output_dir}/checkpoints
+    filename: epoch_{epoch:03d}_step_{step}_loss_{val_loss:.5f}
+    monitor: val_loss
+    verbose: true
+    save_last: true
+    save_top_k: 0
+    mode: min
+    auto_insert_metric_name: false
+    save_weights_only: false
+    every_n_train_steps: null
+    train_time_interval: null
+    every_n_epochs: 1
+    save_on_train_epoch_end: false
+  model_checkpoint_best:
+    _target_: gabbro.callbacks.checkpoint_callback.CustomModelCheckpoint
+    state_key: Best-checkpoint-callback
+    dirpath: ${paths.output_dir}/checkpoints
+    filename: best
+    monitor: val_loss
+    verbose: true
+    save_last: false
+    save_top_k: 8
+    mode: min
+    auto_insert_metric_name: false
+    save_weights_only: false
+    every_n_train_steps: null
+    train_time_interval: null
+    every_n_epochs: 1
+    save_on_train_epoch_end: false
+  model_summary:
+    _target_: lightning.pytorch.callbacks.RichModelSummary
+    max_depth: -1
+  lr_monitor:
+    _target_: lightning.pytorch.callbacks.LearningRateMonitor
+    logging_interval: epoch
+    log_momentum: false
+  generative_callback:
+    _target_: gabbro.callbacks.generative_callback.GenEvalCallback
+    n_val_gen_jets: 500
+    every_n_epochs: 1
+    starting_at_epoch: 0
+    batch_size_for_generation: 64
+  early_stopping:
+    _target_: lightning.pytorch.callbacks.EarlyStopping
+    monitor: val_loss
+    min_delta: 0.0
+    patience: 20
+    verbose: true
+    mode: min
+    strict: true
+    check_finite: true
+    stopping_threshold: null
+    divergence_threshold: null
+    check_on_train_epoch_end: null
+logger:
+  comet:
+    _target_: lightning.pytorch.loggers.comet.CometLogger
+    api_key: ${oc.env:COMET_API_TOKEN}
+    save_dir: ${paths.output_dir}
+    project_name: ${project_name}
+    rest_api_key: null
+    experiment_key: null
+    offline: false
+    prefix: ''
+    experiment_name: HeavyChalice
+  csv:
+    _target_: lightning.pytorch.loggers.csv_logs.CSVLogger
+    save_dir: ${paths.output_dir}
+    name: csv/
+    prefix: ''
+  wandb:
+    project: ${project_name}
+    tags: ${tags}
+    name: HeavyChalice
+trainer:
+  _target_: lightning.Trainer
+  default_root_dir: ${paths.output_dir}
+  min_epochs: 1
+  accelerator: gpu
+  devices: 1
+  enable_progress_bar: false
+  check_val_every_n_epoch: 1
+  deterministic: false
+  max_steps: 1000000
+  gradient_clip_val: 5
+  log_every_n_steps: 10
+  limit_train_batches: 1900
+  limit_val_batches: 100
+paths:
+  log_dir: ${oc.env:LOG_DIR}
+  output_dir: ${hydra:run.dir}
+  work_dir: ${hydra:runtime.cwd}
+extras:
+  ignore_warnings: false
+  enforce_tags: true
+  print_config: true
+project_name: omnijet-jet-evolution
+run_note: Modified jet evolution model with two heads, sequence length 512
+load_weights_from: null
+load_weights_strict: false
